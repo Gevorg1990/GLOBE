@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Globe with Animated Date Numbers</title>
+    <style>
+        body { margin: 0; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+    // Scene setup
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+
+    const renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    // Load Earth texture
+    const textureLoader = new THREE.TextureLoader();
+    textureLoader.load('qq.jpg', function (texture) {
+        // Create a globe with texture
+        const globeGeometry = new THREE.SphereGeometry(2, 32, 32);
+        const globeMaterial = new THREE.MeshStandardMaterial({ map: texture });
+        const globe = new THREE.Mesh(globeGeometry, globeMaterial);
+        scene.add(globe);
+
+        // Add a light source
+        const ambientLight = new THREE.AmbientLight(0x404040); // Ambient light
+        const pointLight = new THREE.PointLight(0xffffff, 1, 100); // Point light
+        pointLight.position.set(10, 10, 10);
+        scene.add(ambientLight);
+        scene.add(pointLight);
+
+        // Create the date numbers
+        const date = "12.34.5678"; // Desired order
+        const fontLoader = new THREE.FontLoader();
+        const textMeshes = [];
+
+        fontLoader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', function (font) {
+            const numberArray = date.split("");
+            const orbitRadius = 4; // Increased orbit radius for better spacing
+            const angleStep = (Math.PI * 2) / numberArray.length; // Angle between numbers
+
+            // Define target positions for "12.34.5678" with proper spacing
+            const finalPositions = [
+                { x: -2.5, y: 1.5, z: 0 },  // 1
+                { x: -2, y: 1.5, z: 0 },  // 2
+                { x: -1.5, y: 1.5, z: 0 },  // .
+                { x: -1, y: 1.5, z: 0 },   // 3
+                { x: -0.5, y: 1.5, z: 0 },   // 4
+                { x: 0, y: 1.5, z: 0 },   // .
+                { x: 0.5, y: 0.5, z: 0 },  // 5
+                { x: 1, y: 0.5, z: 0 },  // 6
+                { x: 1.5, y: 0.5, z: 0 },  // 7
+                { x: 2, y: 0.5, z: 0 },   // 8
+            ];
+
+            // Create and position text numbers around the globe
+            numberArray.forEach((char, index) => {
+                const textGeometry = new THREE.TextGeometry(char, {
+                    font: font,
+                    size: 0.5, // Adjusted size for better visibility
+                    height: 0.1, // Adjusted height for thickness
+                    curveSegments: 100,
+                    bevelEnabled: false,
+                    bevelThickness: 0.01,
+                    bevelSize: 0.01,
+                    bevelSegments: 1
+                });
+
+                const textMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+                const textMesh = new THREE.Mesh(textGeometry, textMaterial);
+                textMeshes.push(textMesh);
+
+                // Calculate the initial circular position around the globe
+                const angle = angleStep * index;
+                textMesh.userData.originalPosition = {
+                    x: orbitRadius * Math.cos(angle),
+                    y: orbitRadius * Math.sin(angle),
+                    z: 0
+                };
+
+                textMesh.position.copy(textMesh.userData.originalPosition);
+                scene.add(textMesh);
+            });
+
+            // Set camera position
+            camera.position.set(0, 0, 8);
+            camera.lookAt(0, 0, 0);
+
+            // Animation variables
+            const rotationSpeed = 0.8; // Speed of circular motion
+            let startTime = Date.now();
+            let falling = false;
+            const fallSpeed = 0.05; // Speed of falling down
+            const finalYPosition = -4; // Final y position for falling
+            const fallDuration = 2000; // Duration for the falling animation
+
+            // Animation loop
+            function animate() {
+                requestAnimationFrame(animate);
+
+                globe.rotation.y += 0.001;
+
+                if (!falling) {
+
+
+                    // Calculate elapsed time
+                    const elapsedTime = (Date.now() - startTime) / 1000; // Time in seconds
+
+                    // Move the numbers in a circular path
+                    textMeshes.forEach((textMesh, index) => {
+                        const angle = rotationSpeed * elapsedTime + (angleStep * index);
+                        textMesh.position.x = orbitRadius * Math.cos(angle);
+                        textMesh.position.y = orbitRadius * Math.sin(angle);
+                        textMesh.position.z = 0;
+                        textMesh.lookAt(camera.position);
+                    });
+
+                    // Check if one full circle is completed
+                    if (elapsedTime > 10) { // Adjust duration for one full circle
+                        falling = true;
+                        startTime = Date.now(); // Reset time for falling animation
+                    }
+                } else {
+                    const timeElapsed = Date.now() - startTime;
+
+                    textMeshes.forEach((textMesh, index) => {
+                        const progress = Math.min(timeElapsed / fallDuration, 1); // Normalize progress to [0, 1]
+                        const targetPosition = finalPositions[index]; // Target position in final order
+
+                        // Calculate the falling position
+                        textMesh.position.set(
+                            targetPosition.x,
+                            Math.max(textMesh.position.y - (fallSpeed * progress), finalYPosition),
+                            targetPosition.z
+                        );
+
+                        textMesh.lookAt(camera.position);
+                    });
+
+                    // // Check if all texts have reached their final positions
+                    // if (textMeshes.every(textMesh => textMesh.position.y <= finalYPosition)) {
+                    //     return; // Stop the animation
+                    // }
+                }
+
+                renderer.render(scene, camera);
+            }
+            animate();
+
+            // Handle window resize
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        });
+    });
+</script>
+</body>
+</html>
