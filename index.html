@@ -8,9 +8,11 @@
         body { margin: 0; }
         canvas { display: block; }
     </style>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@700&display=swap">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/webfont/1.6.28/webfontloader.js"></script>
 </head>
 <body>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
     // Scene setup
     const scene = new THREE.Scene();
@@ -36,128 +38,113 @@
         scene.add(ambientLight);
         scene.add(pointLight);
 
-        // Create the date numbers
-        const date = "12.34.5678"; // Desired order
-        const fontLoader = new THREE.FontLoader();
-        const textMeshes = [];
+        // Load the custom font using WebFont Loader
+        WebFont.load({
+            google: {
+                families: ['Roboto:700']
+            },
+            active: function() {
+                // Once the font is loaded, create the date numbers
+                const date = "12.34.5678";
+                const fontLoader = new THREE.FontLoader();
+                const textMeshes = [];
+                const orbitRadius = 2.8;
+                const angleStep = (Math.PI * 2) / date.length;
 
-        fontLoader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', function (font) {
-            const numberArray = date.split("");
-            const orbitRadius = 2.8; // Increased orbit radius for better spacing
-            const angleStep = (Math.PI * 2) / numberArray.length; // Angle between numbers
+                // Load the font and create text geometries
+                fontLoader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', function (font) {
+                    const finalPositions = [
+                        { x: -2.5, y: 1.5, z: 0 },  // 1
+                        { x: -2, y: 1.5, z: 0 },  // 2
+                        { x: -1.5, y: 1.5, z: 0 },  // .
+                        { x: -1, y: 1.5, z: 0 },   // 3
+                        { x: -0.5, y: 1.5, z: 0 },   // 4
+                        { x: 0, y: 1.5, z: 0 },   // .
+                        { x: 0.5, y: 0.5, z: 0 },  // 5
+                        { x: 1, y: 0.5, z: 0 },  // 6
+                        { x: 1.5, y: 0.5, z: 0 },  // 7
+                        { x: 2, y: 0.5, z: 0 },   // 8
+                    ];
 
-            // Define target positions for "12.34.5678" with proper spacing
-            const finalPositions = [
-                { x: -2.5, y: 1.5, z: 0 },  // 1
-                { x: -2, y: 1.5, z: 0 },  // 2
-                { x: -1.5, y: 1.5, z: 0 },  // .
-                { x: -1, y: 1.5, z: 0 },   // 3
-                { x: -0.5, y: 1.5, z: 0 },   // 4
-                { x: 0, y: 1.5, z: 0 },   // .
-                { x: 0.5, y: 0.5, z: 0 },  // 5
-                { x: 1, y: 0.5, z: 0 },  // 6
-                { x: 1.5, y: 0.5, z: 0 },  // 7
-                { x: 2, y: 0.5, z: 0 },   // 8
-            ];
+                    date.split("").forEach((char, index) => {
+                        const textGeometry = new THREE.TextGeometry(char, {
+                            font: font,
+                            size: 0.4,
+                            height: 0.1,
+                            curveSegments: 100,
+                            bevelEnabled: true,
+                            bevelThickness: 0.01,
+                            bevelSize: 0.01,
+                            bevelSegments: 1
+                        });
 
-            // Create and position text numbers around the globe
-            numberArray.forEach((char, index) => {
-                const textGeometry = new THREE.TextGeometry(char, {
-                    font: font,
-                    size: 0.4, // Adjusted size for better visibility
-                    height: 0.1, // Adjusted height for thickness
-                    curveSegments: 100,
-                    bevelEnabled: false,
-                    bevelThickness: 0.01,
-                    bevelSize: 0.01,
-                    bevelSegments: 1
-                });
+                        const textMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+                        const textMesh = new THREE.Mesh(textGeometry, textMaterial);
+                        scene.add(textMesh);
+                        textMeshes.push(textMesh);
 
-                const textMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
-                const textMesh = new THREE.Mesh(textGeometry, textMaterial);
-                textMeshes.push(textMesh);
-
-                // Calculate the initial circular position around the globe
-                const angle = angleStep * index;
-                textMesh.userData.originalPosition = {
-                    x: orbitRadius * Math.cos(angle),
-                    y: orbitRadius * Math.sin(angle),
-                };
-
-                textMesh.position.copy(textMesh.userData.originalPosition);
-                scene.add(textMesh);
-            });
-
-            // Set camera position
-            camera.position.set(0, 0, 8);
-            camera.lookAt(0, 0, 0);
-
-            // Animation variables
-            const rotationSpeed = 0.3; // Speed of circular motion
-            let startTime = Date.now();
-            let falling = false;
-            const fallSpeed = 0.05; // Speed of falling down
-            const finalYPosition = -3.5; // Final y position for falling
-            const fallDuration = 1000; // Duration for the falling animation
-
-            // Animation loop
-            function animate() {
-                requestAnimationFrame(animate);
-
-                globe.rotation.y += 0.001;
-
-                if (!falling) {
-
-                    // Calculate elapsed time
-                    const elapsedTime = (Date.now() - startTime) / 1000; // Time in seconds
-
-                    // Move the numbers in a circular path
-                    textMeshes.forEach((textMesh, index) => {
-                        const angle = rotationSpeed * elapsedTime + (angleStep * index);
-                        textMesh.position.x = orbitRadius * Math.cos(angle);
-                        textMesh.position.y = orbitRadius * Math.sin(angle);
-                        textMesh.position.z = 0;
-                        textMesh.lookAt(camera.position);
+                        const angle = angleStep * index;
+                        textMesh.userData.originalPosition = {
+                            x: orbitRadius * Math.cos(angle),
+                            y: orbitRadius * Math.sin(angle),
+                        };
+                        textMesh.position.copy(textMesh.userData.originalPosition);
                     });
 
-                    // Check if one full circle is completed
-                    if (elapsedTime > 10) { // Adjust duration for one full circle
-                        falling = true;
-                        startTime = Date.now(); // Reset time for falling animation
+                    camera.position.set(0, 0, 8);
+                    camera.lookAt(0, 0, 0);
+
+                    let startTime = Date.now();
+                    let falling = false;
+                    const fallSpeed = 0.05;
+                    const finalYPosition = -3.5;
+                    const fallDuration = 1000;
+
+                    function animate() {
+                        requestAnimationFrame(animate);
+
+                        globe.rotation.y += 0.001;
+
+                        if (!falling) {
+                            const elapsedTime = (Date.now() - startTime) / 1000;
+                            textMeshes.forEach((textMesh, index) => {
+                                const angle = 0.3 * elapsedTime + (angleStep * index);
+                                textMesh.position.x = orbitRadius * Math.cos(angle);
+                                textMesh.position.y = orbitRadius * Math.sin(angle);
+                                textMesh.position.z = 0;
+                                textMesh.lookAt(camera.position);
+                            });
+
+                            if (elapsedTime > 10) {
+                                falling = true;
+                                startTime = Date.now();
+                            }
+                        } else {
+                            const timeElapsed = Date.now() - startTime;
+                            textMeshes.forEach((textMesh, index) => {
+                                const progress = Math.min(timeElapsed / fallDuration, 1);
+                                const targetPosition = finalPositions[index];
+
+                                textMesh.position.set(
+                                    targetPosition.x,
+                                    Math.max(textMesh.position.y - (fallSpeed * progress), finalYPosition),
+                                    targetPosition.z
+                                );
+                                textMesh.lookAt(camera.position);
+                            });
+                        }
+
+                        renderer.render(scene, camera);
                     }
-                } else {
-                    const timeElapsed = Date.now() - startTime;
+                    animate();
 
-                    textMeshes.forEach((textMesh, index) => {
-                        const progress = Math.min(timeElapsed / fallDuration, 1); // Normalize progress to [0, 1]
-                        const targetPosition = finalPositions[index]; // Target position in final order
-
-                        // Calculate the falling position
-                        textMesh.position.set(
-                            targetPosition.x,
-                            Math.max(textMesh.position.y - (fallSpeed * progress), finalYPosition),
-                            targetPosition.z
-                        );
-
-                        textMesh.lookAt(camera.position);
+                    window.addEventListener('resize', () => {
+                        camera.aspect = window.innerWidth / window.innerHeight;
+                        camera.updateProjectionMatrix();
+                        renderer.setSize(window.innerWidth, window.innerHeight);
                     });
-
-                    // // Check if all texts have reached their final positions
-                    // if (textMeshes.every(textMesh => textMesh.position.y <= finalYPosition)) {
-                    //     return; // Stop the animation
-                    // }
-                }
-
-                renderer.render(scene, camera);
+                });
             }
-            animate();
-
-            // Handle window resize
-            window.addEventListener('resize', () => {
-                camera.aspect = window.innerWidth / window.innerHeight;
-                camera.updateProjectionMatrix();
-                renderer.setSize(window.innerWidth, window.innerHeight);
-            });
         });
     });
 </script>
