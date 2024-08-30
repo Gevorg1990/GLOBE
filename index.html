@@ -43,7 +43,7 @@
 
         fontLoader.load('https://threejs.org/examples/fonts/helvetiker_regular.typeface.json', function (font) {
             const numberArray = date.split("");
-            const orbitRadius = 3; // Increased orbit radius for better spacing
+            const orbitRadius = 2.8; // Increased orbit radius for better spacing
             const angleStep = (Math.PI * 2) / numberArray.length; // Angle between numbers
 
             // Define target positions for "12.34.5678" with proper spacing
@@ -67,7 +67,7 @@
                     size: 0.4, // Adjusted size for better visibility
                     height: 0.1, // Adjusted height for thickness
                     curveSegments: 100,
-                    bevelEnabled: false,
+                    bevelEnabled: true,
                     bevelThickness: 0.01,
                     bevelSize: 0.01,
                     bevelSegments: 1
@@ -82,7 +82,6 @@
                 textMesh.userData.originalPosition = {
                     x: orbitRadius * Math.cos(angle),
                     y: orbitRadius * Math.sin(angle),
-                    z: 0
                 };
 
                 textMesh.position.copy(textMesh.userData.originalPosition);
@@ -94,12 +93,12 @@
             camera.lookAt(0, 0, 0);
 
             // Animation variables
-            const rotationSpeed = 0.8; // Speed of circular motion
+            const rotationSpeed = 0.3; // Speed of circular motion
             let startTime = Date.now();
             let falling = false;
             const fallSpeed = 0.05; // Speed of falling down
-            const finalYPosition = -4; // Final y position for falling
-            const fallDuration = 2000; // Duration for the falling animation
+            const finalYPosition = -3.5; // Final y position for falling
+            const fallDuration = 1000; // Duration for the falling animation
 
             // Animation loop
             function animate() {
@@ -108,7 +107,6 @@
                 globe.rotation.y += 0.001;
 
                 if (!falling) {
-
 
                     // Calculate elapsed time
                     const elapsedTime = (Date.now() - startTime) / 1000; // Time in seconds
